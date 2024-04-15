@@ -1,0 +1,12 @@
+1. Create map with walls
+2. Add eggs and holes in the map
+3. First map validation( at most one wall next around egg and at least one empty place around hole)
+   (Return to step 1 if not validate)
+4. Arrange the coordinates of the eggs in terms of distance from left bottom corner
+5. Get the closest hole from the closest egg
+6. Find the shortest distance from egg to hole with restriction(forward movement valid only when the other direction of forward is not wall)
+   (Return to step 1 if not validate)
+7. Create the movement of mouse in terms of the route of the egg(movement from mouse position to first egg + subsequential movement pushing the egg to the hole)
+   (Push motion of egg to be created by the back grid of the forward motion and the subsequential motion when encountering direction change)
+8. Repeat step 5 to 7 for the remaining eggs 
+9. Upon completion a full coordinate array of the motion of the mouse will be achieved and ready for visualization
