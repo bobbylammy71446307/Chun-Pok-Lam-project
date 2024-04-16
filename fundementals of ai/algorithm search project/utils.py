@@ -44,7 +44,7 @@ class Stack(object):
 class PriorityQueue(object):
 
     def __init__(self, node):
-        self._queue = sortedcontainers.SortedList([node])
+        self._queue = sortedcontainers.SortedList([node],key=lambda x: x.path_cost)
 
     def push(self, node):
         self._queue.add(node)
@@ -56,7 +56,7 @@ class PriorityQueue(object):
         return len(self._queue) == 0
 
     def compare_and_replace(self, i, node):
-        if node < self._queue[i]:
+        if node.path_cost < self._queue[i].path_cost:
             self._queue.pop(index=i)
             self._queue.add(node)
 
