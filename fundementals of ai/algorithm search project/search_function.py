@@ -24,13 +24,43 @@ class Node():
         next_node = Node(map=new_map, parent=self, path_cost=self.depth+1+distance+dir_cost,direction=direction)
         return next_node
 
-    def path(self):
-        node, path_back, pathing = self, [], []
+    def path(self,is_start=False):
+        node, path_back, pathing,inter_path= self, [], [],[]
         while node.parent is not None:
-            path_back.append(node.direction)
+            path_back.append(node)
             node = node.parent
+        path_back.reverse()
+        if is_start and len(path_back)>1:
+            inter_path.append(path_back[1].direction)
+            for j in range (2,len(path_back)):
+                print(f"solving move {j}")
+                print(inter_path)
+                if path_back[j].direction!=inter_path[-1]:
+                    path_btw=[]
+                    egg_inter_start=Problem_solving(path_back[j-1]).get_element(True)
+                    egg_inter_des=Problem_solving(path_back[j]).get_element(True)
+                    mouse_inter_start=[egg_inter_start[0]-path_back[j-1].direction[0],egg_inter_start[1]-path_back[j-1].direction[1]]
+                    mouse_inter_des=[egg_inter_des[0]-path_back[j].direction[0],egg_inter_des[1]-path_back[j].direction[1]]
+                    complete_inter_map=path_back[j].map
+                    start_inter_map=path_back[j-1].map
+                    complete_inter_map[mouse_inter_des[0]][mouse_inter_des[1]]=2
+                    complete_inter_map[mouse_inter_start[0]][mouse_inter_start[1]]=2
+                    q_egg_inter_action=PriorityQueue(Node(start_inter_map))
+                    while q_egg_inter_action.empty() is False:
+                        start_inter=Problem_solving(q_egg_inter_action.pop())
+                        start_inter.get_solution(egg_inter_des,q_egg_inter_action,is_egg=False)
+                        if (start_inter.node.map==complete_inter_map).all():
+                            print("complete inter")
+                            break
+                    while start_inter.node.parent is not None:
+                        path_btw.append(start_inter.node.direction)
+                        start_inter.node=start_inter.node.parent
+                    inter_path.append(path_btw.reverse())
+                inter_path.append(path_back[j].direction)
+            pathing=inter_path
+
         for i in range (1,len(path_back)+1):
-            pathing.append(path_back[-i])
+            pathing.append(path_back[-i].direction)
         return pathing
 
 
@@ -41,7 +71,7 @@ class Problem_solving():
     def __init__(self,node):
         self.node=node
     
-    def action(self,coordinate):
+    def action(self,coordinate,is_egg):
         valid_candidates = []
         valid_direction = []
         candidates = [[coordinate[0]-1, coordinate[1]], 
@@ -52,11 +82,18 @@ class Problem_solving():
             element_1=self.node.map[coordinate[0]+direction[i][0]][coordinate[1]+direction[i][1]]
             element_2=self.node.map[coordinate[0]+direction[i+1][0]][coordinate[1]+direction[i+1][1]]
             accept=[[0,0],[0,4],[4,0]]
-            if [element_1,element_2] in accept:
+            if [element_1,element_2] in accept and is_egg:
                 valid_candidates += [candidates[i]]
                 valid_candidates += [candidates[i+1]]
                 valid_direction += [direction[i]]
                 valid_direction += [direction[i+1]]
+            else:
+                if element_1==0:
+                    valid_candidates+=[candidates[i]]
+                    valid_direction+=[direction[i]]
+                elif element_2==0:
+                    valid_candidates+=[candidates[i+1]]
+                    valid_direction+=[direction[i+1]]
         return valid_candidates, valid_direction
 
 
@@ -103,15 +140,12 @@ class Problem_solving():
     def get_solution(self,destination_coordinate,q_action,is_egg=True):
         coordinate=self.get_element(is_egg)
         if is_egg:
-            validcandidates, validdirection = self.action(coordinate)
+            validcandidates, validdirection = self.action(coordinate,is_egg)
         else:
             validcandidates,validdirection= self.mouse_action(coordinate)
         for i in range (len(validcandidates)):
             next_node=self.expand(coordinate,validcandidates[i],destination_coordinate,validdirection[i])
             q_action.push(next_node)
-
-
-
 
 class Map():
 
@@ -250,9 +284,6 @@ class Map():
         map_valid=m.map_validation(mapping,coordinate_list)
         return mapping,coordinate_list,map_valid,mouse
 
-
-        
-
 if __name__ == "__main__":
     map_valid=False
     m=Map()
@@ -267,6 +298,7 @@ if __name__ == "__main__":
             egg=egg_list[i]
             hole=m.get_close_hole(egg,hole_list)
             partial_map=m.make_partial(solve_map,egg,hole)
+            print("partial map\n",partial_map)
             completed_map=m.make_completed(deepcopy(partial_map),egg,hole)
             q_action=PriorityQueue(Node(partial_map))
             while q_action.empty() is False:
@@ -277,8 +309,9 @@ if __name__ == "__main__":
                     break
             if q_action.empty():
                 map_valid==False
+                print("recreate map")
                 continue
-            path=solve.node.path()
+            path=solve.node.path(True)
 
             egg_start=[egg[0]-path[0][0],egg[1]-path[0][1]]
             complete_start_map=m.mouse_complete(deepcopy(partial_map),mouse,egg_start)
@@ -293,6 +326,11 @@ if __name__ == "__main__":
                 map_valid==False
                 continue
             start_path=start.node.path()
+                    
+
+
+            
+            
             start_path+=path
             print(start_path)
 
@@ -300,7 +338,9 @@ if __name__ == "__main__":
             solve_map[egg[0]][egg[1]]=0
             solve_map[hole[0]][hole[1]]=1
             mouse=[hole[0]-path[-1][0],hole[1]-path[-1][1]]
-            solve_map[mouse[0]][mouse[1]]==2
+            ori_mouse=solve.get_element(False)
+            solve_map[ori_mouse[0]][ori_mouse[1]]=0
+            solve_map[mouse[0]][mouse[1]]=2
             print(f"egg {i+1} {egg} solved")
             print(start_path)            
 
